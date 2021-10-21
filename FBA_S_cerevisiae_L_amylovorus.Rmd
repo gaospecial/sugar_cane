@@ -1,0 +1,182 @@
+---
+title: "FBA of *S. cerevisiae* and *L. amylovorus*"
+author: "gaoch"
+date: "2021/9/28"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE)
+```
+
+## Setting the environment
+
+```{python}
+from __future__ import print_function
+import cobra
+import pandas as pd
+import cobra.test
+from os.path import join
+from cobra import Model, Reaction, Metabolite
+```
+
+## Load the genome-scale metabolic models (GEMs)
+
+### Yeast model
+
+
+```{python}
+model_yeast = cobra.io.read_sbml_model('iMM904.xml')
+model_yeast.optimize()
+model_yeast.summary()
+```
+
+### *L. amylovorus* model
+
+
+```{python results='hide'}
+# suppress python warnings in reading this model
+model_bac = cobra.io.read_sbml_model('lamylovorus2_30SC_3.xml')
+```
+
+
+```{python}
+model_bac.optimize()
+model_bac.summary()
+```
+
+
+## Perform Flux Balance Analysis (FBA) 
+
+FBA with anaerobic minimal media with glucose and fructose.
+
+### Yeast monoculture
+
+Yeast in minimal media with glucose and fructose.
+
+```{python}
+
+ions = ['EX_' + x for x in ['ca2_e', 'cl_e','cobalt2_e','cu2_e','fe2_e','fe3_e','h_e',
+              'h2o_e','k_e','mg2_e','mn2_e','mobd_e','na1_e','tungs_e','zn2_e','co2_e'
+              'ni2_e','sel_e','slnt_e','so4_e','nh4_e','pi_e','cbl1_e','nh4_e','h2_e','glc__D_e', 'fru_e', 'sucr_e',
+                                   'ergst_e', # ergosterol
+                            'zymst_e', # zymosterol       
+                            'hdcea_e', # Palmitolate
+                                   'ocdca_e', # Steareate/octadecanoate
+                                   'ocdcea_e', # Oleate /octadecenoate
+                                   'ocdcya_e' # lineolite /Octadecadienoate 
+                           ]]
+exchange_reactions = [x.id for x in model_yeast.reactions if 'EX_' in x.id]
+
+# SET the minimal media
+for i in exchange_reactions:
+    if i in ions:
+        model_yeast.reactions.get_by_id(i).lower_bound =-1000.0
+    else:
+        model_yeast.reactions.get_by_id(i).lower_bound =-0.0
+    
+model_yeast.reactions.EX_o2_e.lower_bound=-0.00
+model_yeast.reactions.EX_glc__D_e.lower_bound=-10
+model_yeast.reactions.EX_fru_e.lower_bound=-10
+model_yeast.reactions.EX_sucr_e.lower_bound=-10
+model_yeast.optimize()
+model_yeast.summary()
+```
+### *L. amylovorus* monoculture
+
+*L. amylovorus* in minimal media with glucose and fructose.
+
+```{python}
+ions = ['EX_' + x for x in ['ca2_e', 'cl_e','cobalt2_e','cu2_e','fe2_e','fe3_e','h_e',
+              'h2o_e','k_e','mg2_e','mn2_e','mobd_e','na1_e','tungs_e','zn2_e','co2_e'
+              'ni2_e','sel_e','slnt_e','so4_e','nh4_e','pi_e','cbl1_e','nh4_e','h2_e','glc__D_e', 'fru_e', 'sucr_e',
+                                   'ergst_e', # ergosterol
+                            'zymst_e', # zymosterol       
+                            'hdcea_e', # Palmitolate
+                                   'ocdca_e', # Steareate/octadecanoate
+                                   'ocdcea_e', # Oleate /octadecenoate
+                                   'ocdcya_e' # lineolite /Octadecadienoate 
+                           ]]
+exchange_reactions = [x.id for x in model_bac.reactions if 'EX_' in x.id]
+
+# SET the minimal media
+for i in exchange_reactions:
+    if i in ions:
+        model_bac.reactions.get_by_id(i).lower_bound =-1000.0
+    else:
+        model_bac.reactions.get_by_id(i).lower_bound =-0.0
+    
+model_bac.reactions.EX_o2_e.lower_bound=-0.00
+model_bac.reactions.EX_glc__D_e.lower_bound=-10
+model_bac.reactions.EX_fru_e.lower_bound=-10
+model_bac.reactions.EX_sucr_e.lower_bound=-10
+model_bac.optimize()
+model_bac.summary()
+```
+
+## Metabolic coupling
+
+
+### Yeast in *L. amylovorus* conditioned media
+
+Yeast in minimal media with sucrose, glucose and fructose and with *L. amylovorus* supernatant.
+
+```{python}
+ions = ['EX_' + x for x in ['ca2_e', 'cl_e','cobalt2_e','cu2_e','fe2_e','fe3_e','h_e',
+              'h2o_e','k_e','mg2_e','mn2_e','mobd_e','na1_e','tungs_e','zn2_e','co2_e'
+              'ni2_e','sel_e','slnt_e','so4_e','nh4_e','pi_e','cbl1_e','nh4_e','h2_e','glc__D_e', 'fru_e', 'sucr_e',
+                                   'ergst_e', # ergosterol
+                            'zymst_e', # zymosterol       
+                            'hdcea_e', # Palmitolate
+                                   'ocdca_e', # Steareate/octadecanoate
+                                   'ocdcea_e', # Oleate /octadecenoate
+                                   'ocdcya_e', # lineolite /Octadecadienoate 
+                 ## L. amylovorus metabolites
+                            'lac__D_e',
+                            'acald_e',
+                            'pdima_e',
+                            'glyclt_e',
+                           ]]
+exchange_reactions = [x.id for x in model_yeast.reactions if 'EX_' in x.id]
+
+# SET the minimal media
+for i in exchange_reactions:
+    if i in ions:
+        model_yeast.reactions.get_by_id(i).lower_bound =-1000.0
+    else:
+        model_yeast.reactions.get_by_id(i).lower_bound =-0.0
+    
+model_yeast.reactions.EX_o2_e.lower_bound=-0.00
+model_yeast.reactions.EX_glc__D_e.lower_bound=-10
+model_yeast.reactions.EX_fru_e.lower_bound=-10
+model_yeast.reactions.EX_sucr_e.lower_bound=-10
+
+# L. amylovorus metabolite exchange
+model_yeast.reactions.EX_lac__D_e.lower_bound= -64.4
+model_yeast.reactions.EX_acald_e.lower_bound=-5.26
+# pdima - yeast model does not metabolize
+# glyclt - yeast model does not metabolize
+
+model_yeast.optimize()
+model_yeast.summary()
+```
+
+### Investigating acetaldehyde flux within yeast
+
+```{python}
+model_yeast.metabolites.acald_c.summary()
+```
+
+### Metabolic reactions
+
+
+Most of the acetaldehyde is reduced into ethanol via alcohol dehydrogenase mediated reaction.
+
+```{python}
+model_yeast.reactions.ALCD2ir
+```
+
