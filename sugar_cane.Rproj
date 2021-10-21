@@ -1,0 +1,17 @@
+Version: 1.0
+
+RestoreWorkspace: Default
+SaveWorkspace: Default
+AlwaysSaveHistory: Default
+
+EnableCodeIndexing: Yes
+UseSpacesForTab: Yes
+NumSpacesForTab: 2
+Encoding: UTF-8
+
+RnwWeave: Sweave
+LaTeX: XeLaTeX
+
+PythonType: conda
+PythonVersion: 3.8.12
+PythonPath: ~/miniconda3/envs/cobra/bin/python3.8
